@@ -1,0 +1,27 @@
+:root {
+    /* Color System */
+    --primary-color: #000000;
+    --secondary-color: #FFFFFF;
+    --accent-color: #FF3F6C;
+    --neutral-light: #F5F5F5;
+    --neutral-gray: #EAEAEA;
+    --text-main: #282c3f;
+    --text-muted: #7e818c;
+    --border-color: #eaeaec;
+
+    /* Typography */
+    --font-heading: 'Inter', sans-serif;
+    --font-body: 'Roboto', sans-serif;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+
+    /* Transitions */
+    --transition-fast: 0.2s ease;
+    --transition-normal: 0.3s ease;
+
+    /* Container Max Width */
+    --max-width: 1400px;
+}

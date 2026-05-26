@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELEVATE | Premium Fashion</title>
+    <link rel="stylesheet" href="assets/css/global.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">ELEVATE.</a>
+            <nav class="nav-links">
+                <a href="products.html?category=Men">Men</a>
+                <a href="products.html?category=Women">Women</a>
+                <a href="products.html?category=Kids">Kids</a>
+                <a href="products.html">All Products</a>
+            </nav>
+            <div class="nav-icons">
+                <a href="login.html">Profile</a>
+                <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop" alt="Fashion Hero" class="hero-image">
+            <div class="hero-content">
+                <h1 class="hero-title">Discover Your<br>Signature Style</h1>
+                <p class="mb-4">Explore the new collection. Premium quality, minimalist design.</p>
+                <a href="products.html" class="btn btn-primary">Shop Collection</a>
+            </div>
+        </section>
+
+        <section class="container mt-4" style="padding-top: 60px;">
+            <h2 class="text-center mb-4">Trending Now</h2>
+            <div class="grid grid-cols-4" id="trending-products">
+                <!-- Products will be loaded here via JS -->
+            </div>
+        </section>
+
+        <section class="container mt-4" style="padding-top: 60px;">
+            <div class="grid grid-cols-2">
+                <div style="background: url('https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1920&auto=format&fit=crop') center/cover; height: 400px; display:flex; align-items:flex-end; padding: 30px; border-radius:8px;">
+                    <a href="products.html?category=Women" class="btn btn-secondary" style="background:#fff; color:#000;">Women's Collection</a>
+                </div>
+                <div style="background: url('https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?q=80&w=1920&auto=format&fit=crop') center/cover; height: 400px; display:flex; align-items:flex-end; padding: 30px; border-radius:8px;">
+                    <a href="products.html?category=Men" class="btn btn-secondary" style="background:#fff; color:#000;">Men's Collection</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4 class="logo">ELEVATE.</h4>
+                    <p style="color: var(--text-muted);">Redefining premium fashion with minimalist aesthetics and unmatched quality.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Shop</h4>
+                    <ul>
+                        <li><a href="#">Men</a></li>
+                        <li><a href="#">Women</a></li>
+                        <li><a href="#">New Arrivals</a></li>
+                        <li><a href="#">Sale</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Help</h4>
+                    <ul>
+                        <li><a href="#">Customer Service</a></li>
+                        <li><a href="#">Track Order</a></li>
+                        <li><a href="#">Returns & Exchanges</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                &copy; 2026 ELEVATE. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Load some mock products for trending section if API isn't ready
+            const productsContainer = document.getElementById('trending-products');
+            
+            try {
+                const response = await api.products.getAll();
+                if (response && response.success && response.data.length > 0) {
+                    let html = '';
+                    response.data.slice(0, 4).forEach(product => {
+                        html += `
+                            <div class="product-card">
+                                <div class="product-image-wrapper">
+                                    <a href="product.html?id=${product.id}">
+                                        <img src="${product.image}" alt="${product.name}">
+                                    </a>
+                                </div>
+                                <div class="product-info">
+                                    <div class="product-brand">${product.category}</div>
+                                    <h3 class="product-title"><a href="product.html?id=${product.id}">${product.name}</a></h3>
+                                    <div class="product-price">$${parseFloat(product.price).toFixed(2)}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    productsContainer.innerHTML = html;
+                } else {
+                    productsContainer.innerHTML = '<p class="text-center" style="grid-column: span 4;">No trending products found.</p>';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | ELEVATE</title>
+    <link rel="stylesheet" href="assets/css/global.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <style>
+        .auth-container {
+            max-width: 400px;
+            margin: 80px auto;
+            padding: 40px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: var(--shadow-md);
+        }
+    </style>
+</head>
+<body style="background-color: var(--neutral-light);">
+    <header class="header">
+        <div class="container text-center">
+            <a href="index.html" class="logo">ELEVATE.</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="auth-container">
+            <h2 class="text-center mb-4">Welcome Back</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="email" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="password" class="form-input" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Log In</button>
+            </form>
+            <p class="text-center mt-4" style="color: var(--text-muted);">
+                Don't have an account? <a href="register.html" style="color: var(--primary-color); font-weight: 500;">Register here</a>
+            </p>
+        </div>
+    </main>
+
+    <script src="assets/js/api.js"></script>
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            const res = await api.auth.login({ email, password });
+            if (res && res.success) {
+                window.location.href = 'index.html';
+            } else {
+                alert(res.error || 'Login failed');
+            }
+        });
+    </script>
+</body>
+</html>

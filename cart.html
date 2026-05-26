@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Cart | ELEVATE</title>
+    <link rel="stylesheet" href="assets/css/global.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <style>
+        .cart-container { display: grid; grid-template-columns: 2fr 1fr; gap: 40px; margin-top: 40px; }
+        .cart-item { display: flex; gap: 20px; padding: 20px 0; border-bottom: 1px solid var(--border-color); }
+        .cart-item img { width: 100px; height: 133px; object-fit: cover; border-radius: 4px; }
+        .cart-item-details { flex: 1; }
+        .cart-summary { background: var(--neutral-light); padding: 30px; border-radius: 8px; height: fit-content; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 15px; }
+        .summary-total { font-size: 1.2rem; font-weight: 700; border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: 15px; }
+        
+        @media (max-width: 768px) { .cart-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">ELEVATE.</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1 class="mt-4">Shopping Cart</h1>
+        <div class="cart-container">
+            <div id="cart-items">
+                <p>Loading cart...</p>
+            </div>
+            
+            <div class="cart-summary">
+                <h3>Order Summary</h3>
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span id="summary-subtotal">$0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>Shipping</span>
+                    <span>Free</span>
+                </div>
+                <div class="summary-row summary-total">
+                    <span>Total</span>
+                    <span id="summary-total">$0.00</span>
+                </div>
+                <a href="checkout.html" class="btn btn-primary btn-block mt-4" id="checkout-btn" style="display:none;">Proceed to Checkout</a>
+            </div>
+        </div>
+    </main>
+
+    <script src="assets/js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', loadCart);
+
+        async function loadCart() {
+            const container = document.getElementById('cart-items');
+            try {
+                const res = await api.cart.get();
+                if (res && res.success) {
+                    if (res.data.length === 0) {
+                        container.innerHTML = '<p>Your cart is empty. <a href="products.html" style="text-decoration:underline;">Continue shopping</a>.</p>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    let total = 0;
+                    res.data.forEach(item => {
+                        const imgUrl = item.image.startsWith('assets') ? 'https://via.placeholder.com/100x133?text='+item.name : item.image;
+                        const itemTotal = item.price * item.quantity;
+                        total += itemTotal;
+                        html += `
+                            <div class="cart-item">
+                                <img src="${imgUrl}" alt="${item.name}">
+                                <div class="cart-item-details">
+                                    <h4>${item.name}</h4>
+                                    <p>$${item.price} x ${item.quantity}</p>
+                                    <p style="font-weight:bold; margin-top:10px;">$${itemTotal.toFixed(2)}</p>
+                                </div>
+                                <div>
+                                    <button class="btn btn-outline" style="padding: 5px 10px;" onclick="removeItem(${item.cart_id})">Remove</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    container.innerHTML = html;
+                    document.getElementById('summary-subtotal').textContent = `$${total.toFixed(2)}`;
+                    document.getElementById('summary-total').textContent = `$${total.toFixed(2)}`;
+                    document.getElementById('checkout-btn').style.display = 'block';
+                } else {
+                    container.innerHTML = '<p>Please login to view cart.</p><a href="login.html" class="btn btn-primary mt-4">Login</a>';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function removeItem(cartId) {
+            const res = await api.cart.remove(cartId);
+            if (res && res.success) {
+                loadCart();
+            } else {
+                alert('Failed to remove item');
+            }
+        }
+    </script>
+</body>
+</html>

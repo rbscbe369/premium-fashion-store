@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products | ELEVATE</title>
+    <link rel="stylesheet" href="assets/css/global.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <style>
+        .listing-container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 40px;
+            margin-top: 40px;
+        }
+        .sidebar-filters h3 { margin-bottom: 15px; font-size: 1.1rem; }
+        .filter-group { margin-bottom: 25px; }
+        .filter-group label { display: block; margin-bottom: 8px; cursor: pointer; color: var(--text-muted); }
+        .filter-group input { margin-right: 10px; }
+        
+        .listing-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        
+        @media (max-width: 768px) {
+            .listing-container { grid-template-columns: 1fr; }
+            .sidebar-filters { display: none; } /* Mobile filter toggle needed in real app */
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">ELEVATE.</a>
+            <nav class="nav-links">
+                <a href="products.html?category=Men">Men</a>
+                <a href="products.html?category=Women">Women</a>
+                <a href="products.html">All Products</a>
+            </nav>
+            <div class="nav-icons">
+                <a href="login.html">Profile</a>
+                <a href="cart.html">Cart</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="listing-container">
+            <aside class="sidebar-filters">
+                <h3>Filters</h3>
+                <div class="filter-group">
+                    <h4>Category</h4>
+                    <label><input type="checkbox" value="Men"> Men</label>
+                    <label><input type="checkbox" value="Women"> Women</label>
+                    <label><input type="checkbox" value="Kids"> Kids</label>
+                </div>
+                <div class="filter-group">
+                    <h4>Price</h4>
+                    <label><input type="checkbox" value="0-50"> Under $50</label>
+                    <label><input type="checkbox" value="50-100"> $50 - $100</label>
+                    <label><input type="checkbox" value="100+"> Over $100</label>
+                </div>
+            </aside>
+            
+            <div>
+                <div class="listing-header">
+                    <h2 id="page-title">All Products</h2>
+                    <select class="form-input" style="width: 200px;">
+                        <option value="newest">Newest Arrivals</option>
+                        <option value="price-low">Price: Low to High</option>
+                        <option value="price-high">Price: High to Low</option>
+                    </select>
+                </div>
+                
+                <div class="grid grid-cols-3" id="products-grid">
+                    <!-- Products loaded here -->
+                    <p>Loading products...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                &copy; 2026 ELEVATE. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <script src="assets/js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const category = urlParams.get('category');
+            
+            if (category) {
+                document.getElementById('page-title').textContent = category + "'s Collection";
+            }
+
+            const productsContainer = document.getElementById('products-grid');
+            
+            try {
+                const response = await api.products.getAll(category);
+                if (response && response.success) {
+                    let html = '';
+                    if (response.data.length === 0) {
+                        html = '<p>No products found.</p>';
+                    } else {
+                        response.data.forEach(product => {
+                            const imgUrl = product.image;
+                            html += `
+                                <div class="product-card">
+                                    <div class="product-image-wrapper">
+                                        <a href="product.html?id=${product.id}">
+                                            <img src="${imgUrl}" alt="${product.name}">
+                                        </a>
+                                    </div>
+                                    <div class="product-info">
+                                        <div class="product-brand">${product.category}</div>
+                                        <h3 class="product-title"><a href="product.html?id=${product.id}">${product.name}</a></h3>
+                                        <div class="product-price">$${parseFloat(product.price).toFixed(2)}</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                    productsContainer.innerHTML = html;
+                } else {
+                    productsContainer.innerHTML = '<p>Failed to load products.</p>';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        });
+    </script>
+</body>
+</html>
