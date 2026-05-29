@@ -1,6 +1,6 @@
 // API Utility for communicating with the backend
 
-const API_BASE = '/api'; // Adjust if needed
+const API_BASE = 'api'; // Adjusted for relative paths
 
 async function fetchAPI(endpoint, method = 'GET', data = null) {
     const options = {
@@ -29,7 +29,9 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
 const api = {
     auth: {
         login: (data) => fetchAPI('/auth/login.php', 'POST', data),
-        register: (data) => fetchAPI('/auth/register.php', 'POST', data)
+        register: (data) => fetchAPI('/auth/register.php', 'POST', data),
+        profile: () => fetchAPI('/auth/profile.php'),
+        logout: () => fetchAPI('/auth/logout.php')
     },
     products: {
         getAll: (category = '') => fetchAPI(`/products/get.php${category ? '?category='+category : ''}`),
@@ -41,7 +43,12 @@ const api = {
         get: () => fetchAPI('/cart/get.php')
     },
     orders: {
-        create: () => fetchAPI('/orders/create.php', 'POST')
+        create: () => fetchAPI('/orders/create.php', 'POST'),
+        get: () => fetchAPI('/orders/get.php')
+    },
+    admin: {
+        products: () => fetchAPI('/admin/products.php'),
+        orders: () => fetchAPI('/admin/orders.php')
     },
     tryon: {
         model: (productId) => fetchAPI('/tryon/model.php', 'POST', { product_id: productId })

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile | ELEVATE</title>
+    <link rel="stylesheet" href="assets/css/global.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <style>
+        .profile-container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 40px;
+            margin-top: 40px;
+        }
+        .profile-nav {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            height: fit-content;
+        }
+        .profile-nav button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 12px 15px;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            transition: all 0.2s ease;
+        }
+        .profile-nav button.active, .profile-nav button:hover {
+            background: var(--neutral-light);
+            color: #000;
+            font-weight: 600;
+        }
+        .tab-content {
+            display: none;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .order-card {
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        @media (max-width: 768px) {
+            .profile-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">ELEVATE.</a>
+            <nav class="nav-links">
+                <a href="products.html">Shop All</a>
+            </nav>
+            <div class="nav-icons">
+                <a href="cart.html">Cart</a>
+                <a href="#" onclick="logout()">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1 class="mb-4">My Account</h1>
+        <div class="profile-container">
+            <aside class="profile-nav">
+                <button class="active" onclick="switchTab('details')">Personal Details</button>
+                <button onclick="switchTab('orders')">Order History</button>
+                <button onclick="switchTab('addresses')">Saved Addresses</button>
+            </aside>
+            
+            <div class="profile-content">
+                <!-- Personal Details Tab -->
+                <div id="tab-details" class="tab-content active">
+                    <h2 class="mb-4">Personal Details</h2>
+                    <div id="user-details-loading">Loading...</div>
+                    <div id="user-details" style="display:none;">
+                        <p><strong>Name:</strong> <span id="user-name"></span></p>
+                        <p><strong>Email:</strong> <span id="user-email"></span></p>
+                        <p><strong>Member Since:</strong> <span id="user-joined"></span></p>
+                    </div>
+                </div>
+
+                <!-- Orders Tab -->
+                <div id="tab-orders" class="tab-content">
+                    <h2 class="mb-4">Order History</h2>
+                    <div id="orders-loading">Loading...</div>
+                    <div id="orders-list" style="display:none;">
+                        <!-- Orders injected here -->
+                    </div>
+                </div>
+
+                <!-- Addresses Tab (Placeholder) -->
+                <div id="tab-addresses" class="tab-content">
+                    <h2 class="mb-4">Saved Addresses</h2>
+                    <p class="text-muted">You have no saved addresses yet.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="assets/js/api.js"></script>
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.profile-nav button').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.profile-nav button[onclick="switchTab('${tabId}')"]`).classList.add('active');
+            
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check if logged in (basic check via API call)
+            try {
+                const userRes = await api.auth.profile();
+                if (userRes && userRes.success) {
+                    const user = userRes.data;
+                    document.getElementById('user-details-loading').style.display = 'none';
+                    document.getElementById('user-details').style.display = 'block';
+                    document.getElementById('user-name').textContent = user.name;
+                    document.getElementById('user-email').textContent = user.email;
+                    document.getElementById('user-joined').textContent = new Date(user.created_at).toLocaleDateString();
+                } else {
+                    window.location.href = 'login.html'; // Redirect to login if not authenticated
+                }
+
+                const ordersRes = await api.orders.get();
+                if (ordersRes && ordersRes.success) {
+                    const ordersContainer = document.getElementById('orders-list');
+                    document.getElementById('orders-loading').style.display = 'none';
+                    ordersContainer.style.display = 'block';
+
+                    if (ordersRes.data.length === 0) {
+                        ordersContainer.innerHTML = '<p>You have not placed any orders yet.</p>';
+                    } else {
+                        let html = '';
+                        ordersRes.data.forEach(order => {
+                            html += `
+                                <div class="order-card">
+                                    <div class="order-header">
+                                        <div><strong>Order #${order.id}</strong> <br> ${new Date(order.created_at).toLocaleDateString()}</div>
+                                        <div style="text-align:right;"><strong>$${parseFloat(order.total_price).toFixed(2)}</strong> <br> <span style="color: ${order.status === 'completed' ? 'green' : 'orange'}; text-transform: capitalize;">${order.status}</span></div>
+                                    </div>
+                                    <div>${order.items_count} Item(s)</div>
+                                </div>
+                            `;
+                        });
+                        ordersContainer.innerHTML = html;
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        });
+
+        function logout() {
+            api.auth.logout().then(() => {
+                window.location.href = 'login.html';
+            });
+        }
+    </script>
+</body>
+</html>

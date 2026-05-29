@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | ELEVATE</title>
+    <link rel="stylesheet" href="../assets/css/global.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <style>
+        body { background: var(--neutral-light); }
+        .admin-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            min-height: 100vh;
+        }
+        .sidebar {
+            background: #fff;
+            padding: 30px 20px;
+            border-right: 1px solid var(--border-color);
+        }
+        .sidebar h2 { margin-bottom: 30px; font-size: 1.5rem; letter-spacing: 2px; }
+        .sidebar nav button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 12px 15px;
+            background: none;
+            border: none;
+            font-size: 1.05rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+        .sidebar nav button.active, .sidebar nav button:hover {
+            background: #000;
+            color: #fff;
+        }
+        .main-content {
+            padding: 40px;
+        }
+        .card {
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            margin-bottom: 30px;
+        }
+        .admin-section { display: none; }
+        .admin-section.active { display: block; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        th { color: var(--text-muted); font-weight: 500; font-size: 0.9rem; text-transform: uppercase; }
+        
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-cancelled { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <h2 class="logo">ELEVATE.</h2>
+            <nav>
+                <button class="active" onclick="switchAdminTab('dashboard')">Dashboard Overview</button>
+                <button onclick="switchAdminTab('products')">Manage Products</button>
+                <button onclick="switchAdminTab('orders')">Manage Orders</button>
+                <button style="margin-top: 50px; color: red;" onclick="logout()">Logout</button>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <!-- Dashboard Overview -->
+            <section id="tab-dashboard" class="admin-section active">
+                <h1 class="mb-4">Dashboard Overview</h1>
+                <div class="grid grid-cols-3">
+                    <div class="card text-center">
+                        <h3 class="text-muted">Total Sales</h3>
+                        <h2 style="font-size: 2.5rem; margin-top:10px;">$12,450</h2>
+                    </div>
+                    <div class="card text-center">
+                        <h3 class="text-muted">Active Orders</h3>
+                        <h2 style="font-size: 2.5rem; margin-top:10px;">42</h2>
+                    </div>
+                    <div class="card text-center">
+                        <h3 class="text-muted">Total Products</h3>
+                        <h2 style="font-size: 2.5rem; margin-top:10px;">124</h2>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Manage Products -->
+            <section id="tab-products" class="admin-section">
+                <div style="display:flex; justify-content: space-between; align-items:center;" class="mb-4">
+                    <h1>Products Inventory</h1>
+                    <button class="btn btn-primary">+ Add Product</button>
+                </div>
+                <div class="card">
+                    <div id="products-loading">Loading products...</div>
+                    <table id="products-table" style="display:none;">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Image</th>
+                                <th>Name</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-list"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Manage Orders -->
+            <section id="tab-orders" class="admin-section">
+                <h1 class="mb-4">Recent Orders</h1>
+                <div class="card">
+                    <div id="orders-loading">Loading orders...</div>
+                    <table id="orders-table" style="display:none;">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer ID</th>
+                                <th>Total</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-list"></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- The api.js will need to have API_BASE adjusted to '../api' if running from a subfolder, 
+         but since API_BASE='api' in api.js, let's redefine it here or handle it. -->
+    <script>
+        const API_BASE = '../api'; 
+    </script>
+    <script src="../assets/js/api.js"></script>
+    <!-- Override API_BASE after script load -->
+    <script>
+        // Temporary override for admin panel subdirectory pathing
+        window.api.auth.profile = () => fetchAPI('/auth/profile.php');
+        window.api.auth.logout = () => fetchAPI('/auth/logout.php');
+        window.api.admin.products = () => fetchAPI('/admin/products.php');
+        window.api.admin.orders = () => fetchAPI('/admin/orders.php');
+
+        async function fetchAPI(endpoint, method = 'GET', data = null) {
+            const options = { method, headers: { 'Content-Type': 'application/json' } };
+            if (data) options.body = JSON.stringify(data);
+            const response = await fetch(`../api${endpoint}`, options);
+            return await response.json();
+        }
+
+        function switchAdminTab(tabId) {
+            document.querySelectorAll('.sidebar nav button').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.sidebar nav button[onclick="switchAdminTab('${tabId}')"]`).classList.add('active');
+            
+            document.querySelectorAll('.admin-section').forEach(sec => sec.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Basic role check
+            const userRes = await window.api.auth.profile();
+            if (!userRes || !userRes.success || userRes.data.role !== 'admin') {
+                alert("Access Denied. Admin privileges required.");
+                window.location.href = '../login.html';
+                return;
+            }
+
+            loadProducts();
+            loadOrders();
+        });
+
+        async function loadProducts() {
+            const res = await window.api.admin.products();
+            document.getElementById('products-loading').style.display = 'none';
+            document.getElementById('products-table').style.display = 'table';
+            
+            if (res && res.success) {
+                let html = '';
+                res.data.forEach(p => {
+                    const imgUrl = p.image.startsWith('assets') ? '../' + p.image : p.image;
+                    html += `
+                        <tr>
+                            <td>#${p.id}</td>
+                            <td><img src="${imgUrl}" style="width:40px; height:50px; object-fit:cover; border-radius:4px;"></td>
+                            <td><strong>${p.name}</strong><br><small class="text-muted">${p.category}</small></td>
+                            <td>$${parseFloat(p.price).toFixed(2)}</td>
+                            <td>${p.stock}</td>
+                            <td><a href="#" style="color:var(--primary-color);">Edit</a></td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('products-list').innerHTML = html;
+            }
+        }
+
+        async function loadOrders() {
+            const res = await window.api.admin.orders();
+            document.getElementById('orders-loading').style.display = 'none';
+            document.getElementById('orders-table').style.display = 'table';
+            
+            if (res && res.success) {
+                let html = '';
+                res.data.forEach(o => {
+                    const statusClass = `status-${o.status}`;
+                    html += `
+                        <tr>
+                            <td>#${o.id}</td>
+                            <td>User #${o.user_id}</td>
+                            <td><strong>$${parseFloat(o.total_price).toFixed(2)}</strong></td>
+                            <td>${new Date(o.created_at).toLocaleDateString()}</td>
+                            <td><span class="status-badge ${statusClass}">${o.status.toUpperCase()}</span></td>
+                            <td>
+                                <select onchange="updateOrderStatus(${o.id}, this.value)" style="padding:4px; border-radius:4px;">
+                                    <option value="pending" ${o.status==='pending'?'selected':''}>Pending</option>
+                                    <option value="completed" ${o.status==='completed'?'selected':''}>Completed</option>
+                                    <option value="cancelled" ${o.status==='cancelled'?'selected':''}>Cancelled</option>
+                                </select>
+                            </td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('orders-list').innerHTML = html;
+            }
+        }
+
+        async function updateOrderStatus(id, status) {
+            alert('Order status update API call would go here.');
+        }
+
+        function logout() {
+            window.api.auth.logout().then(() => {
+                window.location.href = '../login.html';
+            });
+        }
+    </script>
+</body>
+</html>
