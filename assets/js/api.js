@@ -48,10 +48,19 @@ const api = {
     },
     admin: {
         products: () => fetchAPI('/admin/products.php'),
-        orders: () => fetchAPI('/admin/orders.php')
+        orders: () => fetchAPI('/admin/orders.php'),
+        tryons: () => fetchAPI('/admin/tryon_requests.php')
     },
     tryon: {
-        model: (productId) => fetchAPI('/tryon/model.php', 'POST', { product_id: productId })
+        // Old model function replaced by upload flow
+        upload: (formData) => {
+            return fetch(`../api/tryon/upload.php`, {
+                method: 'POST',
+                body: formData
+            }).then(res => res.json()).catch(err => ({error: err.message}));
+        },
+        status: (requestId) => fetchAPI(`/tryon/status.php?id=${requestId}`),
+        history: () => fetchAPI('/tryon/history.php')
     }
 };
 

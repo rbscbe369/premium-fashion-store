@@ -64,16 +64,48 @@
 
     <!-- Try On Modal -->
     <div class="modal-overlay" id="tryon-modal">
-        <div class="modal-content text-center">
+        <div class="modal-content" style="max-width: 800px; width: 90%;">
             <button class="modal-close" onclick="closeTryOnModal()">&times;</button>
-            <h2 class="mb-4">View on Model</h2>
-            <div id="tryon-loading" style="padding: 40px 0;">
-                <p>Generating AI model... Please wait.</p>
+            <h2 class="mb-4 text-center">Virtual Try-On</h2>
+            
+            <div class="grid grid-cols-2" id="tryon-setup">
+                <div>
+                    <h4>1. Upload Your Photo</h4>
+                    <p class="text-muted" style="font-size:0.9rem; margin-bottom:15px;">Clear, full-body shots work best. Max 10MB.</p>
+                    <div style="border: 2px dashed var(--border-color); padding: 40px 20px; text-align: center; border-radius: 8px; cursor: pointer;" onclick="document.getElementById('user_image').click()">
+                        <p id="upload-text">Click to upload or drag & drop</p>
+                        <input type="file" id="user_image" accept="image/jpeg, image/png, image/webp" style="display:none;" onchange="previewUpload(event)">
+                    </div>
+                    <img id="upload-preview" src="" style="display:none; width:100%; margin-top:15px; border-radius:8px;">
+                </div>
+                <div>
+                    <h4>2. Generate Result</h4>
+                    <p class="text-muted" style="font-size:0.9rem; margin-bottom:15px;">Our AI engine will simulate the outfit on you.</p>
+                    <button class="btn btn-primary btn-block" id="btn-generate" onclick="generateTryOn()" disabled>Generate Try-On</button>
+                </div>
+            </div>
+
+            <div id="tryon-loading" style="display:none; padding: 40px 0; text-align:center;">
+                <h4>Creating your virtual try-on...</h4>
+                <p class="text-muted">Please wait a few moments.</p>
                 <div style="margin-top:20px; border: 4px solid #f3f3f3; border-top: 4px solid #000; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
             </div>
+
             <div id="tryon-result" style="display:none;">
-                <img id="tryon-image" src="" alt="Model wearing product" style="width:100%; border-radius:8px; margin-bottom: 20px;">
-                <p>Here is how the item looks on our AI model.</p>
+                <div class="grid grid-cols-2">
+                    <div>
+                        <h4 class="text-center mb-2">Before</h4>
+                        <img id="result-before" src="" style="width:100%; border-radius:8px;">
+                    </div>
+                    <div>
+                        <h4 class="text-center mb-2">After</h4>
+                        <img id="result-after" src="" style="width:100%; border-radius:8px;">
+                    </div>
+                </div>
+                <div class="action-buttons text-center mt-4">
+                    <button class="btn btn-outline" onclick="closeTryOnModal()">Close</button>
+                    <button class="btn btn-primary" onclick="addToCart()">Add Product to Cart</button>
+                </div>
             </div>
         </div>
     </div>
@@ -130,7 +162,7 @@
 
                     <div class="action-buttons">
                         <button class="btn btn-primary" onclick="addToCart()">Add to Cart</button>
-                        <button class="btn btn-accent" onclick="openTryOnModal()">View on Model</button>
+                        <button class="btn btn-accent" onclick="openTryOnModal()">Virtual Try-On</button>
                     </div>
                 </div>
             `;
@@ -150,29 +182,93 @@
             }
         }
 
-        async function openTryOnModal() {
-            if (!currentProduct) return;
-            const modal = document.getElementById('tryon-modal');
-            const loading = document.getElementById('tryon-loading');
-            const result = document.getElementById('tryon-result');
-            
-            modal.classList.add('active');
-            loading.style.display = 'block';
-            result.style.display = 'none';
+        let uploadedFile = null;
+        let pollInterval = null;
 
-            const res = await api.tryon.model(currentProduct.id);
-            if (res && res.success) {
-                document.getElementById('tryon-image').src = res.data.model_image_url;
-                loading.style.display = 'none';
-                result.style.display = 'block';
-            } else {
-                alert('Failed to generate model image.');
-                closeTryOnModal();
-            }
+        function openTryOnModal() {
+            if (!currentProduct) return;
+            document.getElementById('tryon-modal').classList.add('active');
+            resetTryOnModal();
         }
 
         function closeTryOnModal() {
             document.getElementById('tryon-modal').classList.remove('active');
+            if (pollInterval) clearInterval(pollInterval);
+        }
+
+        function previewUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                uploadedFile = file;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('upload-preview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    document.getElementById('btn-generate').disabled = false;
+                    document.getElementById('upload-text').innerText = file.name;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function generateTryOn() {
+            if (!uploadedFile || !currentProduct) return;
+
+            // Update UI State
+            document.getElementById('tryon-setup').style.display = 'none';
+            document.getElementById('tryon-loading').style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('user_image', uploadedFile);
+            formData.append('product_id', currentProduct.id);
+
+            const res = await api.tryon.upload(formData);
+            
+            if (res && res.success) {
+                pollStatus(res.request_id);
+            } else {
+                alert(res.error || 'Failed to start try-on processing.');
+                resetTryOnModal();
+            }
+        }
+
+        function pollStatus(requestId) {
+            pollInterval = setInterval(async () => {
+                const res = await api.tryon.status(requestId);
+                if (res && res.success) {
+                    if (res.status === 'completed') {
+                        clearInterval(pollInterval);
+                        showResult(res.result_url);
+                    } else if (res.status === 'failed') {
+                        clearInterval(pollInterval);
+                        alert('Virtual Try-On failed processing.');
+                        resetTryOnModal();
+                    }
+                } else {
+                    clearInterval(pollInterval);
+                    alert('Error checking status.');
+                    resetTryOnModal();
+                }
+            }, 3000); // poll every 3 seconds
+        }
+
+        function showResult(resultUrl) {
+            document.getElementById('tryon-loading').style.display = 'none';
+            document.getElementById('tryon-result').style.display = 'block';
+            document.getElementById('result-before').src = document.getElementById('upload-preview').src;
+            document.getElementById('result-after').src = resultUrl;
+        }
+
+        function resetTryOnModal() {
+            document.getElementById('tryon-setup').style.display = 'grid';
+            document.getElementById('tryon-loading').style.display = 'none';
+            document.getElementById('tryon-result').style.display = 'none';
+            document.getElementById('user_image').value = '';
+            document.getElementById('upload-preview').style.display = 'none';
+            document.getElementById('upload-text').innerText = 'Click to upload or drag & drop';
+            document.getElementById('btn-generate').disabled = true;
+            uploadedFile = null;
         }
     </script>
 </body>

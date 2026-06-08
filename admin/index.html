@@ -81,6 +81,7 @@
                 <button class="active" onclick="switchAdminTab('dashboard')">Dashboard Overview</button>
                 <button onclick="switchAdminTab('products')">Manage Products</button>
                 <button onclick="switchAdminTab('orders')">Manage Orders</button>
+                <button onclick="switchAdminTab('tryons')">Try-On Requests</button>
                 <button style="margin-top: 50px; color: red;" onclick="logout()">Logout</button>
             </nav>
         </aside>
@@ -149,6 +150,27 @@
                     </table>
                 </div>
             </section>
+
+            <!-- Try-On Requests -->
+            <section id="tab-tryons" class="admin-section">
+                <h1 class="mb-4">Virtual Try-On Requests</h1>
+                <div class="card">
+                    <div id="tryons-loading">Loading requests...</div>
+                    <table id="tryons-table" style="display:none;">
+                        <thead>
+                            <tr>
+                                <th>Req ID</th>
+                                <th>User</th>
+                                <th>Product</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Result</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tryons-list"></tbody>
+                    </table>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -165,6 +187,7 @@
         window.api.auth.logout = () => fetchAPI('/auth/logout.php');
         window.api.admin.products = () => fetchAPI('/admin/products.php');
         window.api.admin.orders = () => fetchAPI('/admin/orders.php');
+        window.api.admin.tryons = () => fetchAPI('/admin/tryon_requests.php');
 
         async function fetchAPI(endpoint, method = 'GET', data = null) {
             const options = { method, headers: { 'Content-Type': 'application/json' } };
@@ -192,6 +215,7 @@
 
             loadProducts();
             loadOrders();
+            loadTryons();
         });
 
         async function loadProducts() {
@@ -245,6 +269,33 @@
                     `;
                 });
                 document.getElementById('orders-list').innerHTML = html;
+            }
+        }
+
+        async function loadTryons() {
+            const res = await window.api.admin.tryons();
+            document.getElementById('tryons-loading').style.display = 'none';
+            document.getElementById('tryons-table').style.display = 'table';
+            
+            if (res && res.success) {
+                let html = '';
+                res.data.forEach(t => {
+                    const statusClass = t.status === 'completed' ? 'status-completed' : (t.status === 'failed' ? 'status-cancelled' : 'status-pending');
+                    const userName = t.user_name ? t.user_name : 'Guest';
+                    html += `
+                        <tr>
+                            <td>#${t.id}</td>
+                            <td>${userName}</td>
+                            <td>${t.product_name}</td>
+                            <td>${new Date(t.created_at).toLocaleDateString()}</td>
+                            <td><span class="status-badge ${statusClass}">${t.status.toUpperCase()}</span></td>
+                            <td>
+                                ${t.result_image_url ? `<a href="${t.result_image_url}" target="_blank" style="color:var(--primary-color);">View</a>` : '-'}
+                            </td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('tryons-list').innerHTML = html;
             }
         }
 
